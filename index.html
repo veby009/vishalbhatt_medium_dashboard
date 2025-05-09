@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Vishal Bhatt Medium Profile & Stories</title>
+<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    background: linear-gradient(135deg, #0d1117 0%, #238636 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #c9d1d9;
+    max-width: 720px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #161b22;
+    padding: 24px;
+    text-align: center;
+    border-bottom: 2px solid #238636;
+  }
+  #avatar {
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    border: 4px solid #58a6ff;
+    margin-bottom: 14px;
+    object-fit: cover;
+  }
+  h1 {
+    font-weight: 900;
+    font-size: 2.2rem;
+    margin: 0;
+    color: #58a6ff;
+    text-shadow: 0 0 10px #58a6ff88;
+  }
+  #bio {
+    margin-top: 12px;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: #8b949e;
+  }
+  nav {
+    margin-top: 12px;
+  }
+  nav a {
+    color: #79b8ff;
+    margin: 0 12px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  nav a:hover {
+    text-decoration: underline;
+  }
+  main {
+    padding: 24px 16px;
+    background: #0d1117;
+    flex-grow: 1;
+  }
+  #search-container {
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  #searchInput {
+    width: 100%;
+    max-width: 480px;
+    padding: 12px 16px;
+    border-radius: 20px;
+    border: none;
+    font-size: 1rem;
+    box-shadow: 0 0 12px #238636aa;
+    outline: none;
+    color: #161b22;
+  }
+  #articles {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  @media(min-width: 600px) {
+    #articles {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .article {
+    background: #161b22;
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 0 20px #238636aa;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.3s ease;
+  }
+  .article:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px #238636dd;
+  }
+  .article-title {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #58a6ff;
+    margin: 0 0 6px 0;
+    text-decoration: none;
+  }
+  .article-title:hover {
+    text-decoration: underline;
+  }
+  .article-meta {
+    font-size: 0.85rem;
+    color: #8b949e;
+    margin-bottom: 12px;
+  }
+  .article-snippet {
+    font-size: 1rem;
+    color: #c9d1d9cc;
+    line-height: 1.4;
+  }
+  #loadMoreBtn {
+    margin: 36px auto 16px auto;
+    padding: 10px 28px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background-color: #238636;
+    border: none;
+    border-radius: 30px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 0 15px #238636cc;
+    transition: background-color 0.3s ease;
+    display: block;
+  }
+  #loadMoreBtn:hover:not(:disabled) {
+    background-color: #2ea043;
+  }
+  #loadMoreBtn:disabled {
+    background-color: #666;
+    cursor: not-allowed;
+  }
+  footer {
+    text-align: center;
+    padding: 14px;
+    font-size: 0.85rem;
+    color: #8b949e;
+    background: #161b22;
+    border-top: 2px solid #238636;
+  }
+</style>
+</head>
+<body>
+<header>
+  <img id="avatar" alt="Profile Avatar" src="" />
+  <h1 id="name"></h1>
+  <p id="bio"></p>
+  <nav>
+    <a href="https://medium.com/@vishalbhatt_99213" target="_blank" rel="noopener noreferrer">Medium Profile</a>
+    <a href="https://twitter.com/vishalbhatt" target="_blank" rel="noopener noreferrer">Twitter</a>
+  </nav>
+</header>
+
+<main>
+  <div id="search-container">
+    <input type="search" id="searchInput" placeholder="Search articles..." aria-label="Search articles">
+  </div>
+  <section id="articles" aria-live="polite" aria-relevant="additions"></section>
+  <button id="loadMoreBtn">Load More</button>
+</main>
+
+<footer>
+  &copy; 2024 Vishal Bhatt | Medium Portfolio Dashboard
+</footer>
+
+<script>
+  const username = 'vishalbhatt_99213';
+  const rssUrl = encodeURIComponent(`https://medium.com/feed/@${username}`);
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
+
+  const avatarEl = document.getElementById('avatar');
+  const nameEl = document.getElementById('name');
+  const bioEl = document.getElementById('bio');
+  const articlesContainer = document.getElementById('articles');
+  const searchInput = document.getElementById('searchInput');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  let allArticles = [];
+  let displayedCount = 0;
+  const articlesPerPage = 6;
+
+  async function fetchProfileAndArticles() {
+    try {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = 'Loading...';
+
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (data.status !== 'ok') throw new Error('Failed to load RSS feed');
+
+      avatarEl.src = data.feed.image;
+      nameEl.textContent = data.feed.author;
+      bioEl.textContent = data.feed.description || '';
+
+      allArticles = data.items;
+      displayedCount = 0;
+
+      renderArticles();
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Load More';
+      toggleLoadMoreButton();
+    } catch (err) {
+      console.error(err);
+      articlesContainer.innerHTML = '<p style="text-align:center; color:#ff6b6b;">Failed to load articles.</p>';
+      loadMoreBtn.style.display = 'none';
+    }
+  }
+
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function renderArticles() {
+    const filter = searchInput.value.toLowerCase();
+    articlesContainer.innerHTML = '';
+
+    const filtered = allArticles.filter(article =>
+      article.title.toLowerCase().includes(filter) ||
+      (article.description && article.description.toLowerCase().includes(filter))
+    );
+
+    const toShow = filtered.slice(0, displayedCount + articlesPerPage);
+    displayedCount = toShow.length;
+
+    toShow.forEach(article => {
+      const articleEl = document.createElement('article');
+      articleEl.className = 'article';
+      articleEl.innerHTML = `
+        <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="article-title">${article.title}</a>
+        <div class="article-meta">${formatDate(article.pubDate)}</div>
+        <div class="article-snippet">${(article.description || '').replace(/<[^>]*>?/gm, '').slice(0, 180)}...</div>
+      `;
+      articlesContainer.appendChild(articleEl);
+    });
+
+    toggleLoadMoreButton(filtered.length);
+  }
+
+  function toggleLoadMoreButton(filteredLength = null) {
+    const total = filteredLength !== null ? filteredLength : allArticles.length;
+    if (displayedCount >= total) {
+      loadMoreBtn.style.display = 'none';
+    } else {
+      loadMoreBtn.style.display = 'block';
+      loadMoreBtn.disabled = false;
+    }
+  }
+
+  searchInput.addEventListener('input', () => {
+    displayedCount = 0;
+    renderArticles();
+  });
+
+  loadMoreBtn.addEventListener('click', () => {
+    renderArticles();
+  });
+
+  window.onload = fetchProfileAndArticles;
+</script>
+</body>
+</html>
